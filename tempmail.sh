@@ -28,18 +28,32 @@ generate_email() {
 # Safe inbox fetch
 get_inbox() {
   echo -e "\n📥 Checking inbox for $email..."
-  response=$(curl -s "${BASE_URL}?action=getMessages&login=$login&domain=$domain")
-  echo "$response" | jq empty 2>/dev/null
-  if [ $? -ne 0 ]; then
-    echo "❌ Error: Invalid inbox JSON:"
-    echo "$response"
-  else
-    echo -e "\n=== Inbox ==="
-    echo "$response" | jq -r '.[] | "📨 ID: \(.id)\n📛 From: \(.from)\n📌 Subject: \(.subject)\n📅 Date: \(.date)\n---"'
-    if [ "$(echo "$response" | jq length)" -eq 0 ]; then
-      echo "📭 Inbox is empty."
-    fi
+
+  # Validate login/domain
+  if [[ -z "$login" || -z "$domain" ]]; then
+    echo "❌ Error: Email not properly initialized (login/domain missing)."
+    return
   fi
+
+  # Get API response
+  response=$(curl -s "${BASE_URL}?action=getMessages&login=$login&domain=$domain")
+
+  # Check if response is valid JSON
+  if ! echo "$response" | jq -e . >/dev/null 2>&1; then
+    echo "❌ API error or invalid JSON:"
+    echo "$response"
+    return
+  fi
+
+  # Display messages
+  count=$(echo "$response" | jq length)
+  if [ "$count" -eq 0 ]; then
+    echo "📭 Inbox is empty."
+    return
+  fi
+
+  echo -e "\n=== 📬 Inbox Messages ==="
+  echo "$response" | jq -r '.[] | "📨 ID: \(.id)\n📛 From: \(.from)\n📌 Subject: \(.subject)\n📅 Date: \(.date)\n---"'
 }
 
 # Read a specific message
