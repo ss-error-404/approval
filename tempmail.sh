@@ -1,6 +1,6 @@
 #!/data/data/com.termux/files/usr/bin/bash
 
-# === Tempmail CLI using 1secmail API ===
+# === Tempmail CLI using 1secmail.com API ===
 
 BASE_URL="https://www.1secmail.com/api/v1/"
 CHARS="abcdefghijklmnopqrstuvwxyz1234567890"
@@ -15,26 +15,43 @@ generate_email() {
   login="$name"
   domain="1secmail.com"
   email="$login@$domain"
-  echo "Generated Email: $email"
+  echo "📧 Generated Email: $email"
 }
 
-# Get inbox messages
+# Fetch inbox safely
 get_inbox() {
-  echo -e "\nFetching inbox for $email..."
-  curl -s "${BASE_URL}?action=getMessages&login=$login&domain=$domain" | jq .
+  echo -e "\n📥 Checking inbox for $email..."
+  response=$(curl -s "${BASE_URL}?action=getMessages&login=$login&domain=$domain")
+  echo "$response" | jq empty 2>/dev/null
+  if [ $? -ne 0 ]; then
+    echo "❌ Error: Response is not valid JSON:"
+    echo "$response"
+  else
+    echo "$response" | jq .
+  fi
 }
 
-# Read a specific message
+# Read a message by ID
 read_email() {
-  read -p "Enter message ID to read: " msgid
-  echo -e "\nFetching message ID $msgid..."
-  curl -s "${BASE_URL}?action=readMessage&login=$login&domain=$domain&id=$msgid" | jq .
+  read -p "✉️  Enter message ID to read: " msgid
+  echo -e "\n📖 Reading message ID $msgid..."
+  response=$(curl -s "${BASE_URL}?action=readMessage&login=$login&domain=$domain&id=$msgid")
+  echo "$response" | jq empty 2>/dev/null
+  if [ $? -ne 0 ]; then
+    echo "❌ Error: Response is not valid JSON:"
+    echo "$response"
+  else
+    echo "$response" | jq .
+  fi
 }
 
 # Main menu
 main() {
-  echo "=== TEMPMAIL CLI ==="
+  echo "==============================="
+  echo "     TEMPMAIL CLI TOOL"
+  echo "==============================="
   generate_email
+
   while true; do
     echo -e "\nOptions:"
     echo "1. Check Inbox"
@@ -44,8 +61,8 @@ main() {
     case $opt in
       1) get_inbox ;;
       2) read_email ;;
-      3) break ;;
-      *) echo "Invalid option" ;;
+      3) echo "👋 Goodbye!"; break ;;
+      *) echo "❗ Invalid option" ;;
     esac
   done
 }
